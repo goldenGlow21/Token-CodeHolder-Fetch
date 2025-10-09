@@ -3,9 +3,11 @@ import sys
 import json
 import requests
 from datetime import datetime
+import time
 
 MORALIS_API_KEY = os.getenv('MORALIS_API_KEY', '')
 MAX_HOLDERS = 20
+ADDRESS_FILE = './address.json'
 
 def fetch_all_holders(token_address):
     url = f"https://deep-index.moralis.io/api/v2.2/erc20/{token_address}/owners"
@@ -30,7 +32,6 @@ def fetch_all_holders(token_address):
         if not holders:
             break
         
-        # Filter fields
         filtered_holders = [{
             'owner_address': h.get('owner_address'),
             'balance': h.get('balance'),
@@ -41,7 +42,6 @@ def fetch_all_holders(token_address):
         
         all_holders.extend(filtered_holders)
         
-        # Stop if reached max
         if len(all_holders) >= MAX_HOLDERS:
             all_holders = all_holders[:MAX_HOLDERS]
             break
@@ -90,33 +90,46 @@ def save_to_json(token_address, holders_data, metadata=None):
     
     return file_path
 
+def load_addresses():
+    if not os.path.exists(ADDRESS_FILE):
+        print(f"Error: {ADDRESS_FILE} not found")
+        sys.exit(1)
+    
+    with open(ADDRESS_FILE, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    return list(data.keys())
+
 def main():
-    if len(sys.argv) != 2:
-        print("Usage: python holder-fetch.py <token_address>")
-        sys.exit(1)
-    
-    token_address = sys.argv[1]
-    
-    if not token_address.startswith('0x') or len(token_address) != 42:
-        print("Invalid address")
-        sys.exit(1)
-    
     if not MORALIS_API_KEY:
         print("Set MORALIS_API_KEY environment variable")
         print("Get free key at: https://moralis.io")
         sys.exit(1)
     
-    try:
-        metadata = get_token_metadata(token_address)
-        holders = fetch_all_holders(token_address)
-        file_path = save_to_json(token_address, holders, metadata)
-        
-        print(f"Fetched {len(holders)} holders")
-        print(f"Saved to: {file_path}")
-        
-    except Exception as e:
-        print(f"Error: {str(e)}")
-        sys.exit(1)
+    addresses = load_addresses()
+    total = len(addresses)
+    
+    print(f"Found {total} tokens to process\n")
+    
+    for idx, token_address in enumerate(addresses, 1):
+        try:
+            print(f"[{idx}/{total}] Processing {token_address}")
+            
+            metadata = get_token_metadata(token_address)
+            holders = fetch_all_holders(token_address)
+            file_path = save_to_json(token_address, holders, metadata)
+            
+            print(f"  Saved {len(holders)} holders\n")
+            
+            # Rate limiting
+            if idx < total:
+                time.sleep(0.5)
+            
+        except Exception as e:
+            print(f"  Error: {str(e)}\n")
+            continue
+
+    print(f"Completed: {total} tokens processed")
 
 if __name__ == '__main__':
     main()
