@@ -40,10 +40,10 @@ result/
 ```
 
 **holders.csv format:**
-- `token_address`: Token contract address
-- `owner_address`: Holder wallet address
-- `balance_formatted`: Token balance
-- `percentage_relative_to_total_supply`: Holding percentage
+- `token_addr`: Token contract address
+- `holder_addr`: Holder wallet address
+- `balance`: Token balance
+- `rel_to_total`: Holding percentage
 
 ## Notes
 

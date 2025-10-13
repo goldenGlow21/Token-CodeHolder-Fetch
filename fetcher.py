@@ -110,17 +110,17 @@ def save_holders_csv(token_address, holders_data):
 
     with open(file_path, 'a', encoding='utf-8', newline='') as f:
         if holders_data:
-            writer = csv.DictWriter(f, fieldnames=['token_address', 'owner_address', 'balance_formatted', 'percentage_relative_to_total_supply'])
+            writer = csv.DictWriter(f, fieldnames=['token_addr', 'holder_addr', 'balance', 'rel_to_total'])
 
             if not file_exists:
                 writer.writeheader()
 
             for holder in holders_data:
                 holder_row = {
-                    'token_address': token_address,
-                    'owner_address': holder['owner_address'],
-                    'balance_formatted': holder['balance_formatted'],
-                    'percentage_relative_to_total_supply': holder['percentage_relative_to_total_supply']
+                    'token_addr': token_address,
+                    'holder_addr': holder['owner_address'],
+                    'balance': holder['balance_formatted'],
+                    'rel_to_total': holder['percentage_relative_to_total_supply']
                 }
                 writer.writerow(holder_row)
 
