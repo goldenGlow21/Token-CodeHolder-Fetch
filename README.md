@@ -1,9 +1,52 @@
-## Token Holder Fetching Tool
+# ERC20 Token Data Fetcher
 
-### Usage
+Automated tool to fetch token holder information, contract source code, and bytecode for ERC20 tokens.
 
-**Required: Moralis API key**
+## Setup
 
-> python holder-fetch.py
+1. Install dependencies:
+```bash
+pip install requests python-dotenv
+```
 
-**Fetched result will be stored in the `./result` folder, with contract address as its name**
+2. Configure API keys in `.env`:
+```bash
+cp .env.example .env
+# Edit .env with your API keys
+```
+
+**Required API Keys:**
+- Moralis API: https://moralis.io
+- Etherscan API: https://etherscan.io/myapikey
+- Alchemy API: https://www.alchemy.com
+
+3. Add token addresses to `address.json`
+
+## Usage
+
+```bash
+python fetcher.py
+```
+
+## Output
+
+```
+result/
+├── holders.csv              # All token holders data
+├── sourcecode/
+│   └── {address}.sol       # Contract source code
+└── bytecode/
+    └── {address}.evm       # Contract bytecode
+```
+
+**holders.csv format:**
+- `token_address`: Token contract address
+- `owner_address`: Holder wallet address
+- `balance_formatted`: Token balance
+- `percentage_relative_to_total_supply`: Holding percentage
+
+## Notes
+
+- Fetches top 20 holders per token
+- Rate limited to avoid API restrictions
+- Skips contracts without verified source code
