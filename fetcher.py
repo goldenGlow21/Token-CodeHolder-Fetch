@@ -5,6 +5,7 @@ import csv
 import requests
 from datetime import datetime
 import time
+import argparse
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -162,46 +163,84 @@ def load_addresses():
     
     return list(data.keys())
 
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description='Fetch Ethereum token data (holders, bytecode, sourcecode)',
+        usage='python fetcher.py [options]'
+    )
+    parser.add_argument('-H', '--holders', action='store_true',
+                        help='Fetch holders data')
+    parser.add_argument('-b', '--bytecode', action='store_true',
+                        help='Fetch bytecode')
+    parser.add_argument('-s', '--sourcecode', action='store_true',
+                        help='Fetch source code')
+
+    args = parser.parse_args()
+
+    # If no options specified, fetch everything
+    if not (args.holders or args.bytecode or args.sourcecode):
+        args.holders = True
+        args.bytecode = True
+        args.sourcecode = True
+
+    return args
+
 def main():
-    if not MORALIS_API_KEY:
-        print("Error: MORALIS_API_KEY not set")
+    args = parse_args()
+
+    # Validate API keys based on what's being fetched
+    if args.holders and not MORALIS_API_KEY:
+        print("Error: MORALIS_API_KEY not set (required for holders)")
         sys.exit(1)
-    if not ETHERSCAN_API_KEY:
-        print("Error: ETHERSCAN_API_KEY not set")
+    if args.sourcecode and not ETHERSCAN_API_KEY:
+        print("Error: ETHERSCAN_API_KEY not set (required for sourcecode)")
         sys.exit(1)
-    if not ALCHEMY_API_KEY:
-        print("Error: ALCHEMY_API_KEY not set")
+    if args.bytecode and not ALCHEMY_API_KEY:
+        print("Error: ALCHEMY_API_KEY not set (required for bytecode)")
         sys.exit(1)
 
     addresses = load_addresses()
     total = len(addresses)
 
-    print(f"Found {total} tokens to process\n")
+    # Display what will be fetched
+    fetch_list = []
+    if args.holders:
+        fetch_list.append('holders')
+    if args.bytecode:
+        fetch_list.append('bytecode')
+    if args.sourcecode:
+        fetch_list.append('sourcecode')
+
+    print(f"Found {total} tokens to process")
+    print(f"Fetching: {', '.join(fetch_list)}\n")
 
     for idx, token_address in enumerate(addresses, 1):
         try:
             print(f"[{idx}/{total}] Processing {token_address}")
 
             # Fetch holders data
-            holders = fetch_all_holders(token_address)
-            save_holders_csv(token_address, holders)
-            print(f"  Saved {len(holders)} holders")
+            if args.holders:
+                holders = fetch_all_holders(token_address)
+                save_holders_csv(token_address, holders)
+                print(f"  Saved {len(holders)} holders")
 
             # Fetch source code
-            source_code = fetch_source_code(token_address)
-            if source_code:
-                save_source_code(token_address, source_code)
-                print(f"  Saved source code")
-            else:
-                print(f"  No source code available")
+            if args.sourcecode:
+                source_code = fetch_source_code(token_address)
+                if source_code:
+                    save_source_code(token_address, source_code)
+                    print(f"  Saved source code")
+                else:
+                    print(f"  No source code available")
 
             # Fetch bytecode
-            bytecode = fetch_bytecode(token_address)
-            if bytecode:
-                save_bytecode(token_address, bytecode)
-                print(f"  Saved bytecode")
-            else:
-                print(f"  No bytecode available")
+            if args.bytecode:
+                bytecode = fetch_bytecode(token_address)
+                if bytecode:
+                    save_bytecode(token_address, bytecode)
+                    print(f"  Saved bytecode")
+                else:
+                    print(f"  No bytecode available")
 
             print()
 
