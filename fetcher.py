@@ -185,6 +185,42 @@ def parse_args():
 
     return args
 
+def get_last_collected_holder_address():
+    """Get the last token address that was collected in holders.csv"""
+    csv_path = './result/holders.csv'
+
+    if not os.path.exists(csv_path):
+        return None
+
+    try:
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            # Read all lines and get the last one
+            lines = f.readlines()
+            if len(lines) <= 1:  # Only header or empty
+                return None
+
+            # Parse the last line
+            last_line = lines[-1].strip()
+            if last_line:
+                # CSV format: token_addr,holder_addr,balance,rel_to_total
+                token_addr = last_line.split(',')[0]
+                return token_addr
+    except Exception as e:
+        print(f"Warning: Error reading holders.csv: {str(e)}")
+
+    return None
+
+def get_collected_addresses(args):
+    collected = set()
+
+    if args.bytecode and os.path.exists('./result/bytecode'):
+        collected.update(f.replace('.evm', '') for f in os.listdir('./result/bytecode') if f.endswith('.evm'))
+
+    if args.sourcecode and os.path.exists('./result/sourcecode'):
+        collected.update(f.replace('.sol', '') for f in os.listdir('./result/sourcecode') if f.endswith('.sol'))
+
+    return collected
+
 def main():
     args = parse_args()
 
@@ -200,6 +236,26 @@ def main():
         sys.exit(1)
 
     addresses = load_addresses()
+
+    # Skip already collected addresses for bytecode/sourcecode
+    collected = get_collected_addresses(args)
+    if collected:
+        addresses = [addr for addr in addresses if addr not in collected]
+        print(f"Skipping {len(collected)} already collected addresses (bytecode/sourcecode)")
+
+    # For holders, resume from the last collected address
+    if args.holders:
+        last_holder_addr = get_last_collected_holder_address()
+        if last_holder_addr:
+            try:
+                last_idx = addresses.index(last_holder_addr)
+                # Skip all addresses up to and including the last collected one
+                addresses = addresses[last_idx + 1:]
+                print(f"Resuming holders collection after: {last_holder_addr}")
+            except ValueError:
+                # Last collected address not in current list, start from beginning
+                print(f"Last collected address {last_holder_addr} not found in address list")
+
     total = len(addresses)
 
     # Display what will be fetched
