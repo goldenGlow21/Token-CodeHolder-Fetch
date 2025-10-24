@@ -12,7 +12,7 @@ env/
 ENV/
 
 # Result Folder
-result/
+
 
 # IDE
 .vscode/
